@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jev Codex"
+  short_description: "Jev browser actions with Codex-supplied field text"
+  default_prompt: "Use $jev-codex to complete my browser task, supplying field text from this conversation."

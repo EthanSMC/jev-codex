@@ -82,7 +82,7 @@ def choose(state, goal, history):
     elements, targets, controls = action_space(state["actions"])
     labels = {
         "CLICK": "Click an element, button, menu option, autocomplete suggestion, or calendar day.",
-        "TYPE_TEXT": "Enter or replace text in an editable field. A small LLM will supply the value from the goal.",
+        "TYPE_TEXT": "Enter or replace text in an editable field. The text provider supplies the value from the goal.",
         "SELECT": "Select an observed dropdown value.",
     }
     operations = {key: labels[key] for key in targets}
@@ -152,9 +152,19 @@ def field_context(goal, action, page, history):
     return {
         "goal": goal,
         "field": {k: action.get(k) for k in ("label", "role", "value")},
-        "page": {"title": page["title"], "text": page["text"][:6000]},
+        "page": {"url": page["url"], "title": page["title"], "text": page["text"][:6000]},
         "recent_actions": [{k: h.get(k) for k in ("action", "text")} for h in history[-6:]],
     }
+
+
+def validate_field_value(output):
+    """Both API and Codex replies must supply one bounded, nonempty field value."""
+    if not isinstance(output, dict) or set(output) != {"text"}:
+        raise ValueError("Text helper returned no valid field value; nothing typed.")
+    value = output["text"]
+    if not isinstance(value, str) or not value.strip() or len(value) > 2000:
+        raise ValueError("Text helper returned no valid field value; nothing typed.")
+    return value
 
 
 def field_text(context):
@@ -186,9 +196,7 @@ def field_text(context):
     )
     try:
         output = json.loads(result["choices"][0]["message"]["content"])
-        value = output["text"]
-        if set(output) != {"text"} or not isinstance(value, str) or not value.strip() or len(value) > 2000:
-            raise ValueError()
+        value = validate_field_value(output)
     except (ValueError, KeyError, TypeError):
         raise ValueError("Text helper returned no valid field value; nothing typed.") from None
     return value, {
