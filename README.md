@@ -36,10 +36,14 @@ Set `TYPESAFE_API_KEY` in the ignored `.env` file. Leave `TEXT_MODEL_API_KEY` em
 Check the browser connection:
 
 ```bash
-uv run browser-harness --doctor
+uv run --env-file .env browser-harness --doctor
 ```
 
 For local Chrome, enable remote debugging at `chrome://inspect/#remote-debugging` and allow its connection prompt. See [Browser Harness setup](https://github.com/browser-use/browser-harness/blob/main/install.md) for platform-specific steps. A Browser Use Cloud account is optional for local Chrome.
+
+If Chrome uses a custom profile or debugging port, automatic discovery may miss it even when Chrome is running. Set `BU_CDP_URL` in `.env` to the **actual local endpoint**, for example `http://127.0.0.1:9224`; this is an example, not a required port. Run both diagnostics and Jev with the same `--env-file`. After changing the endpoint, stop the old harness daemon with `uv run --env-file .env browser-harness --reload`; the next Jev run starts it with the new configuration. Coordinate this restart with any other active harness runs.
+
+Remote debugging grants control of the browser, including access to cookies and logged-in sites. Obtain the user's authorization before enabling it. See [troubleshooting and the live-run report](docs/codex-troubleshooting.md) for diagnosis, known handoff limits, and verification criteria.
 
 ## Install the Codex skill
 
@@ -101,7 +105,7 @@ node --check jev_ultrafast/static/app.js
 uv build
 ```
 
-The 53 offline tests cover original guards, handoff validation, cancellation, stale-page retries, and a CLI subprocess round trip. A macOS PTY round trip was also checked with simulated browser/Jev responses. No real webpage end-to-end run has been verified for this adaptation yet.
+The 53 offline tests cover original guards, handoff validation, cancellation, stale-page retries, and a CLI subprocess round trip. A macOS PTY round trip was also checked with simulated browser/Jev responses. A live macOS run on 2026-09-21 verified the Chrome connection and a Baidu search through Codex handoff. The complete search-to-event-site task required a fallback; this is **partial live validation**, not a successful Jev end-to-end run. See the [live-run report](docs/codex-troubleshooting.md#live-run-report-2026-09-21).
 
 Upstream MVP limits still apply: shadow roots, frames, canvas, uploads, pop-up tabs, nested scrolling, and arbitrary keyboard widgets are outside the supported action space. The browser uses the existing Chrome profile. Credentials stay in your local environment; Jev sends observed page context to TypeSafe as part of action selection.
 

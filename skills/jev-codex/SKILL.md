@@ -23,9 +23,19 @@ Only `TYPESAFE_API_KEY` is needed for Codex mode. Use an existing environment or
 an explicitly identified `.env` file; inspect credential presence without
 printing values. Installing this skill does not supply runtime credentials.
 Browser Harness must be connected; from the checkout, diagnose with
-`uv run browser-harness --doctor`. Use its setup guidance when connection fails.
+`uv run --env-file .env browser-harness --doctor`. Use the same project and
+environment file as the Jev invocation; otherwise diagnostics may test a different
+endpoint. Use its setup guidance when connection fails.
 Do not choose a cloud browser or incur cloud browser charges merely to bypass
 missing local Chrome setup.
+
+For custom Chrome profiles or ports, inspect the actual running endpoint and
+configure `BU_CDP_URL` in the ignored environment file. Do not assume a missing
+`DevToolsActivePort` means Chrome is closed or remote debugging is disabled.
+After changing the endpoint, coordinate with other active harness runs before
+using `browser-harness --reload`, then retry Jev with the same environment.
+Remote debugging permits access to browser data and logged-in sites; obtain user
+authorization before enabling it, following the host's permission requirements.
 
 ## Handoff loop
 
@@ -72,11 +82,21 @@ page changed, Jev chooses again and may issue a new request. Reply using the new
 request ID; never reuse an old reply on your own. The runtime caches text only
 when the complete text-helper context is unchanged.
 
+If successive requests have new IDs but execution counts do not advance, inspect
+for changing page content, such as rotating ads. Whole-page freshness checks can
+reject a pending fill even when the intended field appears unchanged. Do not
+disable guards, replay a previous request ID, or keep answering indefinitely.
+Cancel the pending request using its current ID, inspect completed actions, and
+use a supported starting page or explain the need for a fallback.
+
 `progress` reports execution counts. `result` includes the observed final page,
 elements, and history, but `independently_verified` is false. Check evidence
 against every requested condition; Jev's DONE and exit code 0 alone do not prove
 success. The owned tab closes when the process exits. Use available independent
 browser observations or destination state when further verification is needed.
+For a request to leave a page open, reopen the verified destination with an
+available browser tool and retain it as a deliverable. Report that handoff;
+the current CLI does not keep its owned tab open.
 
 The original `jev` web inspector and `examples/run.py` still use the text API.
 Use `jev-codex` for this handoff. `--text-provider api` is an explicit alternative
@@ -86,3 +106,7 @@ Unsupported upstream mechanics include frames, shadow roots, uploads, canvas,
 pop-up tabs, nested scrolling, and arbitrary keyboard widgets. When the task needs
 these or the runtime is unavailable, explain the limitation and use a suitable
 available fallback within the user's requested scope.
+An unchanged source tab after a click does not prove that nothing happened:
+the destination may have opened in a new tab. Inspect available tabs before
+repeating a click or restarting. Distinguish connection health, individual action
+success, and completion of the user's full task in the final report.
